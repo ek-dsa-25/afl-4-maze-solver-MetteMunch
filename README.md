@@ -34,7 +34,7 @@ Til at finde stien igennem labyrinten er der lavet en funktion `findPath()`.
 Den mangler desværre det meste af sin kode. Den skal benytte en søgefunktion
 der tjekker grafen af naboceller vha. `connectedNeighbors()`. Der er ikke tale
 om en decideret graf-klasse, men blot en abstraktion oven på den eksisterende
-labyrint. Man kan sige at grafen benytter en *dense* repræsentation (matrix)
+labyrint. Man kan sige at grafen benytter en _dense_ repræsentation (matrix)
 hvor hver celle i matricen er en celle, og nabo-pilene er defineret vha.
 væggene.
 
