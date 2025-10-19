@@ -128,14 +128,49 @@ class Cell {
 
     // Hjælpefunktion til MazeSolver: Finder de naboer som ikke har en væg
     connectedNeighbors(grid) {
-        let neighbors = [];
+        let neighborsWithoutWall = [];
 
-        // TODO: Tjek om naboen nord for, hvis den findes, har en væg
-        // TODO: Tjek om naboen til venstre, hvis den findes, har en væg
-        // TODO: Tjek om naboen syd for, hvis den findes, har en væg
-        // TODO: Tjek om naboen til højre, hvis den findes, har en væg
+        // Vi er ikke den nordligste celle
+        if (this.y > 0) {
+            const nord_x = this.x - 0;
+            const nord_y = this.y - 1;
+            const nordlig_nabo = grid[nord_x][nord_y];
+            if(!this.walls.top && !nordlig_nabo.walls.bottom) {
+                neighborsWithoutWall.push(nordlig_nabo);
+            }
 
-        return neighbors;
+        }
+
+        // Vi er ikke cellen yderst til venstre
+        if (this.x > 0) {
+            const vest_x = this.x - 1;
+            const vest_y = this.y;
+            const vestlig_nabo = grid[vest_x][vest_y];
+            if (!this.walls.left && !vestlig_nabo.walls.right) {
+                neighborsWithoutWall.push(vestlig_nabo);
+            }
+        }
+
+        // Vi er ikke den sydligste celle
+        if (this.y < grid[0].length - 1) {
+            const syd_x = this.x;
+            const syd_y = this.y + 1;
+            const sydlig_nabo = grid[syd_x][syd_y];
+            if (!this.walls.bottom && !sydlig_nabo.walls.top) {
+                neighborsWithoutWall.push(sydlig_nabo);
+            }
+        }
+
+        // Vi er ikke cellen mest til højre
+        if (this.x < grid.length - 1) {
+            const øst_x = this.x + 1;
+            const øst_y = this.y;
+            const østlig_nabo = grid[øst_x][øst_y];
+            if (!this.walls.right && !østlig_nabo.walls.left) {
+                neighborsWithoutWall.push(østlig_nabo);
+            }
+        }
+        return neighborsWithoutWall;
     }
 
     // Hjælpefunktion til MazeSolver: Sammenligner om to celler er ens
@@ -190,15 +225,7 @@ class Maze {
 
         currentCell.visited = true;
 
-        // Get unvisited neighbors
-        // If there are unvisited neighbors:
-        // - pick a random one of them
-        // - carve a hole through the wall
-        // - push current cell on stack
-        // - make that neighbor the current cell
-        // If not, make the top of stack the current cell
-        // If still not, you're done
-
+        // Laver labyrinten efter alm recursive backtracking
         while (currentCell != null) {
             let unvisitedNeighbors = currentCell.unvisitedNeighbors(this.grid);
             if (unvisitedNeighbors.length > 0) {
@@ -215,16 +242,16 @@ class Maze {
 
 }
 
-class MazeSolver {
+class MazeSolver { //klasse hvis formål er at finde en vej gennem labyrinten fra et startpunkt til et slutpunkt
     constructor(maze) {
         this.maze = maze;
     }
 
-    resetPathfindingState() {
+    resetPathfindingState() { //nulstiller alle celler
         for (let i = 0; i < this.maze.rows; i += 1) {
             for (let j = 0; j < this.maze.cols; j += 1) {
                 this.maze.grid[i][j].visited = false;
-                this.maze.grid[i][j].parent = null;
+                this.maze.grid[i][j].parent = null; //disse skal bruges til at spore hvor vi har været
             }
         }
     }
@@ -240,7 +267,9 @@ class MazeSolver {
         return null;
     }
 
-    reconstructPath(startCell, endCell) {
+    //når vejen igennem labyrinten er fundet (slutcellen er nået) bruges denne funktion til at rekonstruere 
+    //og gemme cellerne / stien ved at følge .parent tilbage fra slutcellen, så stien kan tegnes
+    reconstructPath(startCell, endCell) { 
         const path = [];
         let currentCell = endCell;
 
