@@ -1,6 +1,7 @@
 function randomInteger(min, max) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
+  //inkl min og ekskl max
+  min = Math.ceil(min); //ceil runder op
+  max = Math.floor(max); //floor runder ned
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
@@ -55,7 +56,7 @@ class Cell {
     ctx.stroke();
   }
 
-  // Hjælpefunktion til generate(): find naboerne i grid vha. this.x og this.y
+  // Hjælpefunktion til generate(): find naboerne i grid som ikke har været besøgt tidligere vha. this.x og this.y
   unvisitedNeighbors(grid) {
     let neighbors = [];
 
@@ -177,14 +178,49 @@ class Cell {
     return this.x === otherCell.x && this.y === otherCell.y;
   }
 
-  // Hjælpefunktion til MazeSolver: Fremhæver cellen som en del af stien
-  drawPath(ctx, cellWidth, color = "#ff0000") {
-    // TODO: Personliggør denne funktion.
-    ctx.fillStyle = color;
-    const px = this.x * cellWidth + cellWidth * 0.25;
-    const py = this.y * cellWidth + cellWidth * 0.25;
-    const size = cellWidth * 0.5;
-    ctx.fillRect(px, py, size, size);
+  // Hjælpefunktion til MazeSolver
+  // Det er denne som tegner stien i den enkelte celle
+  drawPath(ctx, cellWidth, color, intensity = 0, pathIndex = 0) {
+    let newColor = color;
+    console.log("pathIndex", pathIndex);
+
+    // Skift farve for hvert 10'ende step... eftersom jeg vil gøre det i denne funktion som tegner den
+    // enkelte celle, så skal jeg have indeks med som parameter
+    if (
+      (pathIndex > 10 && pathIndex <= 20) ||
+      (pathIndex > 30 && pathIndex <= 40) ||
+      (pathIndex > 50 && pathIndex <= 60) ||
+      (pathIndex > 70 && pathIndex <= 80) ||
+      (pathIndex > 90 && pathIndex <= 100) ||
+      (pathIndex > 110 && pathIndex <= 120) ||
+      (pathIndex > 130 && pathIndex <= 140)
+    ) {
+      // Skift midlertidig farve
+      newColor = "rgba(255, 0, 0)";
+    } else {
+      newColor = color;
+    }
+
+    const [r, g, b] = newColor
+      .match(/\d+/g) // find tallene
+      .map(Number); // lav dem til rigtige tal
+
+    const newR = Math.min(255, r + intensity);
+    const newG = Math.min(255, g + intensity);
+    const newB = Math.min(255, b + intensity);
+
+    ctx.fillStyle = `rgb(${newR}, ${newG}, ${newB})`;
+
+    //Jeg vil lave cirkler, så først skal midten af cellen findes
+    const cx = this.x * cellWidth + cellWidth / 2;
+    const cy = this.y * cellWidth + cellWidth / 2;
+
+    //cirklens radius som en procent af cellens bredde
+    const radius = cellWidth * 0.25;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2); // Tegn cirkel
+    ctx.fill(); // Fyld cirklen med farve
   }
 }
 
@@ -200,17 +236,17 @@ class Maze {
   }
 
   initializeGrid() {
-    for (let i = 0; i < this.rows; i += 1) {
+    for (let i = 0; i < this.cols; i += 1) {
       this.grid.push([]);
-      for (let j = 0; j < this.cols; j += 1) {
+      for (let j = 0; j < this.rows; j += 1) {
         this.grid[i].push(new Cell(i, j));
       }
     }
   }
 
   draw() {
-    for (let i = 0; i < this.rows; i += 1) {
-      for (let j = 0; j < this.cols; j += 1) {
+    for (let i = 0; i < this.cols; i += 1) {
+      for (let j = 0; j < this.rows; j += 1) {
         this.grid[i][j].draw(this.ctx, this.cellWidth);
       }
     }
@@ -263,7 +299,7 @@ class MazeSolver {
     const startCell = this.maze.grid[startX][startY];
     const endCell = this.maze.grid[endX][endY];
 
-    // TODO: Lav `findPath()` vha. enten DFS (stak) eller BFS (queue)
+    // Her løsning vha BFS (queue). Hvad er DFS (stak)?
 
     let queue = [startCell];
     startCell.visited = true;
@@ -304,7 +340,10 @@ class MazeSolver {
     return path.length > 0 && path[0].equals(startCell) ? path : null;
   }
 
-  drawPath(path, color = "#ff0000") {
+  //Hvis vi ønsker at vejen gennem labyrinten tegnes på en gang, så kaldes denne funktionen, som igen kalder drawPath()
+  //som findes i class Cell, og som ved hvordan den enkelte celle skal tegnes
+  drawPath(path, color) {
+    //denne kalder funktionen drawPath() som findes i class Cell, og som ved hvordan den enkelte celle skal tegnes
     if (!path) return;
 
     for (const cell of path) {
@@ -312,11 +351,24 @@ class MazeSolver {
     }
   }
 
-  async drawPathStepwise(path, color = "#ff0000", delay = 100) {
+  //Hvis vi ønsker animeret gengivelse af vejen gennem labyrinten, så kaldes denne funktionen, som igen kalder drawPath()
+  //som findes i class Cell, og som ved hvordan den enkelte celle skal tegnes
+  async drawPathStepwise(path, color, delay = 100) {
     if (!path) return;
 
-    for (const cell of path) {
-      cell.drawPath(this.maze.ctx, this.maze.cellWidth, color);
+    const midPath = Math.floor(path.length / 2);
+
+    for (let i = 0; i < path.length; i++) {
+      const cell = path[i];
+      let intensity;
+
+      if (i <= midPath) {
+        intensity = i * 3;
+      } else {
+        intensity = (path.length - i) * 3;
+      }
+
+      cell.drawPath(this.maze.ctx, this.maze.cellWidth, color, intensity, i);
       await this.sleep(delay);
     }
   }
@@ -342,7 +394,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const endY = maze.rows - 1;
 
   const path = solver.findPath(startX, startY, endX, endY);
-  solver.drawPathStepwise(path, "#ff0000", 20);
+
+  //solver.drawPath(path,"rgb(118, 129, 222)");
+  solver.drawPathStepwise(path, "rgba(15, 83, 7, 1)", 20);
 
   console.log(maze);
 });
